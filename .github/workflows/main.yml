@@ -59,3 +59,8 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: Match DOCX to Markdown"
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          push: true
+          github_token: ${{ secrets.GH_PAT }}
+
