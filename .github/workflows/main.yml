@@ -3,9 +3,9 @@ name: DOCX-MD Converter
 on:
   push:
     paths:
-      - 'MS-Word/**/*.docx'     # Looks for doc files in MS-Word
+      - 'MS-Word/**/*.docx'     # Only looks for word documents in MS-Word
       - '.github/workflows/doc-convert.yml'
-  workflow_dispatch:           
+  workflow_dispatch:            
 
 jobs:
   convert:
@@ -18,28 +18,35 @@ jobs:
       - name: Install Pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc
 
-      - name: Sync converted documents
+      - name: Sync Markdown with DOCX
         run: |
           mkdir -p media
           
           # 1. Convert all existing docx to md
-          echo "Converting DOCX files to Markdown..."
+          echo "Conversion in progress..."
           for f in MS-Word/*.docx; do
             [ -f "$f" ] || continue
             base=$(basename "$f" .docx)
             echo "Converting: $f → $base.md"
             pandoc "$f" -f docx -t gfm --extract-media=media -o "$base.md"
+            
+            # Add auto-generated marker if not already present
+            if ! grep -q "AUTO-GENERATED FROM DOCX" "$base.md"; then
+              sed -i '1i <!-- AUTO-GENERATED FROM DOCX: DO NOT EDIT -->\n' "$base.md"
+            fi
           done
-          
-          # 2. Remove orphaned .md files and their media folders
-          echo "Checking for orphaned Markdown files..."
+
+          # 2. Remove orphaned auto-generated .md files and their media folders
+          echo "Searching for orphaned files..."
           for m in *.md; do
-            [ "$m" = "README.md" ] && continue  # skip README
-            base=$(basename "$m" .md)
-            if [ ! -f "MS-Word/$base.docx" ]; then
-              echo "Removing orphan: $m and media/$base/"
-              rm "$m"
-              rm -rf "media/$base"
+            [ "$m" = "README.md" ] && continue
+            if grep -q "AUTO-GENERATED FROM DOCX" "$m"; then
+              base=$(basename "$m" .md)
+              if [ ! -f "MS-Word/$base.docx" ]; then
+                echo "Deleting orphaned generated file: $m and media/$base/"
+                rm "$m"
+                rm -rf "media/$base"
+              fi
             fi
           done
 
