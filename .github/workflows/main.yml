@@ -1,10 +1,11 @@
-name: Convert Docs to Markdown
+name: DOCX-MD Converter
 
 on:
   push:
     paths:
-      - 'docs/**/*.docx'
-  workflow_dispatch:
+      - 'MS-Word/**/*.docx'     # Looks for doc files in MS-Word
+      - '.github/workflows/doc-convert.yml'
+  workflow_dispatch:           
 
 jobs:
   convert:
@@ -17,16 +18,37 @@ jobs:
       - name: Install Pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc
 
-      - name: Convert DOCX to Markdown (with images, overwrite)
+      - name: Sync converted documents
         run: |
-          mkdir -p docs/media
-          for f in docs/**/*.docx; do
+          mkdir -p media
+          
+          # 1. Convert all existing docx to md
+          echo "Converting DOCX files to Markdown..."
+          for f in MS-Word/*.docx; do
             [ -f "$f" ] || continue
-            out="${f%.docx}.md"
-            pandoc "$f" -f docx -t gfm --extract-media=docs/media -o "$out"
+            base=$(basename "$f" .docx)
+            echo "Converting: $f → $base.md"
+            pandoc "$f" -f docx -t gfm --extract-media=media -o "$base.md"
+          done
+          
+          # 2. Remove orphaned .md files and their media folders
+          echo "Checking for orphaned Markdown files..."
+          for m in *.md; do
+            [ "$m" = "README.md" ] && continue  # skip README
+            base=$(basename "$m" .md)
+            if [ ! -f "MS-Word/$base.docx" ]; then
+              echo "Removing orphan: $m and media/$base/"
+              rm "$m"
+              rm -rf "media/$base"
+            fi
           done
 
-      - name: Commit converted files
+      - name: Ensure media folder exists
+        run: |
+          mkdir -p media
+          touch media/.keep
+
+      - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: auto-convert DOCX docs to Markdown"
+          commit_message: "chore: Match DOCX to Markdown"
