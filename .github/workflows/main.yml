@@ -1,0 +1,32 @@
+name: Convert Docs to Markdown
+
+on:
+  push:
+    paths:
+      - 'docs/**/*.docx'
+  workflow_dispatch:
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Convert DOCX to Markdown (with images, overwrite)
+        run: |
+          mkdir -p docs/media
+          for f in docs/**/*.docx; do
+            [ -f "$f" ] || continue
+            out="${f%.docx}.md"
+            pandoc "$f" -f docx -t gfm --extract-media=docs/media -o "$out"
+          done
+
+      - name: Commit converted files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-convert DOCX docs to Markdown"
