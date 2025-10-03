@@ -62,5 +62,5 @@ jobs:
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
           push: true
-          github_token: ${{ secrets.AF_FG }}
+          github_token: ${{ secrets.AF_RO }}
 
